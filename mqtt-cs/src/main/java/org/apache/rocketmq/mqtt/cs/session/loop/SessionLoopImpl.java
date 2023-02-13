@@ -169,10 +169,12 @@ public class SessionLoopImpl implements SessionLoop {
         if (sessionMap.containsKey(channelId)) {
             return;
         }
+        // 新建 mqtt 客户端 session
         Session session = new Session();
         session.setClientId(clientId);
         session.setChannelId(channelId);
         session.setChannel(channel);
+        // 添加订阅
         addSubscriptionAndInit(session,
                 new HashSet<>(
                         Arrays.asList(Subscription.newP2pSubscription(clientId), Subscription.newRetrySubscription(clientId))),

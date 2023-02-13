@@ -41,6 +41,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * MQTT 客户端 Session
+ */
 public class Session {
     private static Logger logger = LoggerFactory.getLogger(Session.class);
     private final long startTime = System.currentTimeMillis();

@@ -58,10 +58,21 @@ public class Subscription {
         return retrySubscription;
     }
 
+    /**
+     *
+     * @return
+     */
     public boolean isRetry() {
         return TopicUtils.isRetryTopic(topicFilter);
     }
 
+    /**
+     * P2P 消息收发模式，只有一个消息发送者和一个消息接收者
+     * 使用MQTT SDK发送P2P消息时，需将二级Topic设为“p2p”，将三级Topic设为目标接收者的Client ID
+     * @see <a href="https://help.aliyun.com/document_detail/96176.html">P2P消息收发模式（MQTT）</a>
+     *
+     * @return
+     */
     public boolean isP2p() {
         return TopicUtils.isP2pTopic(topicFilter);
     }

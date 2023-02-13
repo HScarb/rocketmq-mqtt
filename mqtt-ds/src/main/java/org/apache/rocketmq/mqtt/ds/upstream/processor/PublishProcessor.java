@@ -72,6 +72,7 @@ public class PublishProcessor implements UpstreamProcessor {
         String originTopic = variableHeader.topicName();
         String pubTopic = TopicUtils.normalizeTopic(originTopic);
         MqttTopic mqttTopic = TopicUtils.decode(pubTopic);
+        // 更新 First Topic 元数据
         firstTopicManager.checkFirstTopicIfCreated(mqttTopic.getFirstTopic());      // Check the firstTopic is existed
         Set<String> queueNames = wildcardManager.matchQueueSetByMsgTopic(pubTopic, context.getNamespace()); //According to topic to find queue
         long bornTime = System.currentTimeMillis();

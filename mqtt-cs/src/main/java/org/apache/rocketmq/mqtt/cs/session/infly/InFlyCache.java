@@ -31,7 +31,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-
+/**
+ * QOS = 2 情况下，生产者发送消息，服务端未收到 PUBREL 消息时的消息缓存
+ */
 @Component
 public class InFlyCache {
 

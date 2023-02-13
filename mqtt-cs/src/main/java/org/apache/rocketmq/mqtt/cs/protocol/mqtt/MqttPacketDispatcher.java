@@ -17,17 +17,6 @@
 
 package org.apache.rocketmq.mqtt.cs.protocol.mqtt;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.mqtt.MqttConnectMessage;
-import io.netty.handler.codec.mqtt.MqttMessage;
-import io.netty.handler.codec.mqtt.MqttPubAckMessage;
-import io.netty.handler.codec.mqtt.MqttPublishMessage;
-import io.netty.handler.codec.mqtt.MqttSubscribeMessage;
-import io.netty.handler.codec.mqtt.MqttUnsubscribeMessage;
-import io.netty.util.ReferenceCountUtil;
 import org.apache.rocketmq.mqtt.common.hook.HookResult;
 import org.apache.rocketmq.mqtt.common.hook.UpstreamHookManager;
 import org.apache.rocketmq.mqtt.common.model.MqttMessageUpContext;
@@ -49,10 +38,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.concurrent.CompletableFuture;
 
+import javax.annotation.Resource;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.mqtt.MqttConnectMessage;
+import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttPubAckMessage;
+import io.netty.handler.codec.mqtt.MqttPublishMessage;
+import io.netty.handler.codec.mqtt.MqttSubscribeMessage;
+import io.netty.handler.codec.mqtt.MqttUnsubscribeMessage;
+import io.netty.util.ReferenceCountUtil;
+
+/**
+ * MQTT 请求入口，解析 MQTT 数据包，分发到具体的处理器，处理器处理完后，返回响应数据包
+ */
 @ChannelHandler.Sharable
 @Component
 public class MqttPacketDispatcher extends SimpleChannelInboundHandler<MqttMessage> {
@@ -91,6 +95,13 @@ public class MqttPacketDispatcher extends SimpleChannelInboundHandler<MqttMessag
     @Resource
     private UpstreamHookManager upstreamHookManager;
 
+    /**
+     * MQTT 请求入口
+     *
+     * @param ctx
+     * @param msg
+     * @throws Exception
+     */
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, MqttMessage msg) throws Exception {
         if (!ctx.channel().isActive()) {
@@ -100,6 +111,7 @@ public class MqttPacketDispatcher extends SimpleChannelInboundHandler<MqttMessag
             throw new ChannelDecodeException(ChannelInfo.getClientId(ctx.channel()) + "," + msg.decoderResult());
         }
         ChannelInfo.touch(ctx.channel());
+        // 前置处理
         boolean preResult = preHandler(ctx, msg);
         if (!preResult) {
             return;
@@ -109,6 +121,7 @@ public class MqttPacketDispatcher extends SimpleChannelInboundHandler<MqttMessag
             if (msg instanceof MqttPublishMessage) {
                 ((MqttPublishMessage) msg).retain();
             }
+            // 根据数据包类型，执行 MQTT 业务逻辑 UpstreamProcessorManager#processMqttMessage
             upstreamHookResult = upstreamHookManager.doUpstreamHook(buildMqttMessageUpContext(ctx), msg);
             if (upstreamHookResult == null) {
                 _channelRead0(ctx, msg, null);
@@ -135,6 +148,7 @@ public class MqttPacketDispatcher extends SimpleChannelInboundHandler<MqttMessag
                 return;
             }
             try {
+                // 处理完业务逻辑，构造响应并返回
                 _channelRead0(ctx, msg, hookResult);
             } catch (Throwable t) {
                 logger.error("", t);

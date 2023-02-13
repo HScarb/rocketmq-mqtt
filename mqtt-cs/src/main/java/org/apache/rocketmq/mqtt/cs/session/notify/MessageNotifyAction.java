@@ -56,7 +56,9 @@ public class MessageNotifyAction {
         if (events == null || events.isEmpty()) {
             return;
         }
+        // 遍历收到的所有消息
         for (MessageEvent event : events) {
+            // 匹配所有订阅了该消息的客户端
             Set<Pair<Session, Subscription>> result = matchAction.matchClients(
                     TopicUtils.normalizeTopic(event.getPubTopic()), event.getNamespace());
             if (result == null || result.isEmpty()) {

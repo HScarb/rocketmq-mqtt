@@ -29,6 +29,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * Netty channel 工具类
+ */
 public class ChannelInfo {
     private static final String CHANNEL_ID_KEY = "0";
     private static final String CHANNEL_CLIENT_ID_KEY = "1";
@@ -241,6 +244,12 @@ public class ChannelInfo {
         channel.attr(CHANNEL_EXTDATA_ATTRIBUTE_KEY).set(null);
     }
 
+    /**
+     * 获取 Channel 属性表
+     *
+     * @param channel
+     * @return
+     */
     public static Map<String, Object> getInfo(Channel channel) {
         Attribute<Map<String, Object>> infoAttribute = channel.attr(CHANNEL_INFO_ATTRIBUTE_KEY);
         if (infoAttribute.get() == null) {

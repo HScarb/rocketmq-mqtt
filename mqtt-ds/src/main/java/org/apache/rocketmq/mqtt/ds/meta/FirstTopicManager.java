@@ -48,11 +48,27 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class FirstTopicManager {
     private static Logger logger = LoggerFactory.getLogger(FirstTopicManager.class);
+
+    /**
+     * First Topic 存在状态缓存
+     */
     private Cache<String, TopicRouteData> topicExistCache;
+
+    /**
+     * First Topic 不存在状态缓存
+     */
     private Cache<String, Object> topicNotExistCache;
     private DefaultMQAdminExt defaultMQAdminExt;
-    private Map<String, Map<String, String>> brokerAddressMap = new ConcurrentHashMap<>();
-    private Map<String, Set<String>> readableBrokers = new ConcurrentHashMap<>();
+
+    /**
+     * First Topic 所在 Broker 主节点
+     */
+    private Map<String /* First Topic */, Map<String, String>> brokerAddressMap = new ConcurrentHashMap<>();
+
+    /**
+     * First Topic 有可读队列的 Broker 地址
+     */
+    private Map<String /* First Topic */, Set<String>> readableBrokers = new ConcurrentHashMap<>();
     private ScheduledThreadPoolExecutor scheduler;
 
     @Resource
@@ -68,6 +84,7 @@ public class FirstTopicManager {
         initMQAdminExt();
 
         scheduler = new ScheduledThreadPoolExecutor(1, new ThreadFactoryImpl("refreshStoreBroker"));
+        // 每 5s 更新 Topic 路由信息
         scheduler.scheduleWithFixedDelay(() -> {
             Set<String> copy = new HashSet<>();
             copy.add(serviceConf.getClientRetryTopic());
@@ -87,6 +104,11 @@ public class FirstTopicManager {
         defaultMQAdminExt.start();
     }
 
+    /**
+     * 检查 First Topic 是路由信息，并更新缓存
+     *
+     * @param firstTopic
+     */
     public void checkFirstTopicIfCreated(String firstTopic) {
         if (topicExistCache.getIfPresent(firstTopic) != null) {
             return;
@@ -95,11 +117,14 @@ public class FirstTopicManager {
             throw new TopicNotExistException(firstTopic + " NotExist");
         }
         try {
+            // 尝试查询 First Topic 元数据
             TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(firstTopic);
+            // 如果元数据不存在，缓存不存在的 Topic 信息
             if (topicRouteData == null || topicRouteData.getBrokerDatas() == null || topicRouteData.getBrokerDatas().isEmpty()) {
                 topicNotExistCache.put(firstTopic, new Object());
                 throw new TopicNotExistException(firstTopic + " NotExist");
             }
+            // 如果存在，缓存 Topic 路由信息
             updateTopicRoute(firstTopic, topicRouteData);
             topicExistCache.put(firstTopic, topicRouteData);
         } catch (MQClientException e) {
@@ -112,6 +137,11 @@ public class FirstTopicManager {
         }
     }
 
+    /**
+     * 更新 Topic 路由信息
+     *
+     * @param firstTopic
+     */
     private void updateTopicRoute(String firstTopic) {
         if (StringUtils.isBlank(firstTopic)) {
             return;
@@ -129,6 +159,12 @@ public class FirstTopicManager {
         }
     }
 
+    /**
+     * 更新 First Topic 路由信息
+     *
+     * @param firstTopic
+     * @param topicRouteData
+     */
     private void updateTopicRoute(String firstTopic, TopicRouteData topicRouteData) {
         if (topicRouteData == null || firstTopic == null) {
             return;

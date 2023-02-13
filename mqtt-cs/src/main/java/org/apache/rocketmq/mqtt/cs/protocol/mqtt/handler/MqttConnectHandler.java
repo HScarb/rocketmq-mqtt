@@ -76,6 +76,7 @@ public class MqttConnectHandler implements MqttPacketHandler<MqttConnectMessage>
         ChannelInfo.setClientId(channel, connectMessage.payload().clientIdentifier());
         ChannelInfo.setCleanSessionFlag(channel, variableHeader.isCleanSession());
 
+        // 判断上游钩子执行结果，如果执行失败则直接返回，关闭 Channel
         String remark = upstreamHookResult.getRemark();
         if (!upstreamHookResult.isSuccess()) {
             byte connAckCode = (byte) upstreamHookResult.getSubCode();
@@ -97,6 +98,7 @@ public class MqttConnectHandler implements MqttPacketHandler<MqttConnectMessage>
 
         try {
             MqttConnAckMessage mqttConnAckMessage = MqttMessageFactory.buildConnAckMessage(MqttConnectReturnCode.CONNECTION_ACCEPTED);
+            // 向客户端发送 ACK
             future.thenAccept(aVoid -> {
                 if (!channel.isActive()) {
                     return;

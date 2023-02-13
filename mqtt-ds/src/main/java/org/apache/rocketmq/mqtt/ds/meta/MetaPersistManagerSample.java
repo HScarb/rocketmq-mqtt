@@ -39,12 +39,25 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * MQTT 元数据管理器，存储在 Name server 的 KV 存储中
  * A Sample For Meta Manager, Persisted In namesrv KV Config
  */
 public class MetaPersistManagerSample implements MetaPersistManager {
     private static Logger logger = LoggerFactory.getLogger(MetaPersistManagerSample.class);
-    private volatile Map<String, Set<String>> wildcardCache = new ConcurrentHashMap<>();
+
+    /**
+     * 父 Topic 下多层级 Topic
+     */
+    private volatile Map<String /* first topic */, Set<String>> wildcardCache = new ConcurrentHashMap<>();
+
+    /**
+     * 父 Topic
+     */
     private volatile Set<String> firstTopics = new HashSet<>();
+
+    /**
+     * MQTT Proxy 节点列表
+     */
     private volatile Set<String> connectNodeSet = new HashSet<>();
     private DefaultMQAdminExt defaultMQAdminExt;
     private ScheduledThreadPoolExecutor scheduler;
@@ -61,6 +74,7 @@ public class MetaPersistManagerSample implements MetaPersistManager {
         defaultMQAdminExt.start();
         refreshMeta();
         scheduler = new ScheduledThreadPoolExecutor(1, new ThreadFactoryImpl("refreshMeta"));
+        // 每 5s 刷新元数据到内存
         scheduler.scheduleWithFixedDelay(() -> {
             try {
                 refreshMeta();
@@ -70,7 +84,15 @@ public class MetaPersistManagerSample implements MetaPersistManager {
         }, 5, 5, TimeUnit.SECONDS);
     }
 
+    /**
+     * 从 Nameserver 的 KV 存储刷新元数据缓存
+     *
+     * @throws RemotingException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
     private void refreshMeta() throws RemotingException, InterruptedException, MQClientException {
+        // 更新父 Topic 和子队列元数据
         String value = defaultMQAdminExt.getKVConfig(RMQ_NAMESPACE, KEY_LMQ_ALL_FIRST_TOPICS);
         if (value == null) {
             return;
@@ -97,6 +119,7 @@ public class MetaPersistManagerSample implements MetaPersistManager {
         }
         firstTopics = tmpFirstTopics;
         wildcardCache = tmpWildcardCache;
+        // 获取配置的 MQTT Proxy 所有节点列表，更新到缓存
         value = defaultMQAdminExt.getKVConfig(RMQ_NAMESPACE, KEY_LMQ_CONNECT_NODES);
         if (StringUtils.isNotBlank(value)) {
             String[] ss = StringUtils.split(value, VALUE_SPLITTER);

@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * MQTT 消息 ID 生成器
+ */
 @Component
 public class MqttMsgId {
 

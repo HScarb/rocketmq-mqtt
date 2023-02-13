@@ -17,6 +17,9 @@
 
 package org.apache.rocketmq.mqtt.common.model;
 
+/**
+ * RPC 请求码
+ */
 public class RpcCode {
     public static final int SUCCESS = 1;
     public static final int FAIL = -1;

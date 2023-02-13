@@ -34,6 +34,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * RPC 服务端
+ */
 @Service
 public class RpcServer {
     private static Logger logger = LoggerFactory.getLogger(RpcServer.class);
@@ -50,11 +53,14 @@ public class RpcServer {
     @PostConstruct
     public void start() {
         NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        // 监听 7001 端口
         nettyServerConfig.setListenPort(connectConf.getRpcListenPort());
         remotingServer = new NettyRemotingServer(nettyServerConfig);
         csBridgeRpcQueue = new LinkedBlockingQueue<>(10000);
+        // RPC 请求处理线程池
         ThreadPoolExecutor executor = new ThreadPoolExecutor(8, 16, 1, TimeUnit.MINUTES,
                 csBridgeRpcQueue, new ThreadFactoryImpl("Rpc_Server_Thread_"));
+        // 注册 RPC 请求处理器
         remotingServer.registerDefaultProcessor(rpcPacketDispatcher, executor);
         remotingServer.start();
         logger.warn("start  rpc server , port:{}", connectConf.getRpcListenPort());

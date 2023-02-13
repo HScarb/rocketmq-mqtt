@@ -39,9 +39,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 多级队列管理器
+ */
 @Component
 public class WildcardManager {
     private static Logger logger = LoggerFactory.getLogger(WildcardManager.class);
+
+    /**
+     * 多级队列字典树
+     */
     private Map<String, Trie<String, Integer>> wildCardTrie = new ConcurrentHashMap<>();
     private ScheduledThreadPoolExecutor scheduler;
 
@@ -51,6 +58,7 @@ public class WildcardManager {
     @PostConstruct
     public void init() {
         scheduler = new ScheduledThreadPoolExecutor(1, new ThreadFactoryImpl("loadWildcard_thread_"));
+        // 每 5s 刷新多级队列
         scheduler.scheduleWithFixedDelay(() -> refreshLoadWildcard(), 0, 5, TimeUnit.SECONDS);
     }
 

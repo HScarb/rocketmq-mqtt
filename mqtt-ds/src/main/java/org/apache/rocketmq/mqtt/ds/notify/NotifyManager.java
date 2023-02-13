@@ -60,7 +60,11 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
+/**
+ * 新消息通知管理器
+ * 消费消息，当有新消息可以消费时，发送通知
+ * @see <a href="https://docs.google.com/document/d/1AD1GkV9mqE_YFA97uVem4SmB8ZJSXiJZvzt7-K6Jons/edit#heading=h.tz9wsreyzs2e">Push-Pull Model</a>
+ */
 @Component
 public class NotifyManager {
     private static Logger logger = LoggerFactory.getLogger(NotifyManager.class);
@@ -115,7 +119,13 @@ public class NotifyManager {
         remotingClient.start();
     }
 
+    /**
+     * 刷新订阅的 Topic
+     *
+     * @throws MQClientException
+     */
     private void refresh() throws MQClientException {
+        // 从元数据存储中获取所有 First Topic
         Set<String> tmp = metaPersistManager.getAllFirstTopics();
         if (tmp == null || tmp.isEmpty()) {
             return;
@@ -127,9 +137,12 @@ public class NotifyManager {
                     // notify by RetryDriver self
                     continue;
                 }
+                // 查询 Topic 路由信息，更新缓存
                 firstTopicManager.checkFirstTopicIfCreated(topic);
                 thisTopicList.add(topic);
+                // 如果有新的 Topic 被订阅，在消费者添加订阅
                 if (!topics.contains(topic)) {
+                    // 消费者订阅新的 Topic
                     subscribe(topic);
                     topics.add(topic);
                 }
@@ -137,6 +150,7 @@ public class NotifyManager {
                 logger.error("", e);
             }
         }
+        // 取消订阅被从元数据中删除的 Topic
         Iterator<String> iterator = topics.iterator();
         while (iterator.hasNext()) {
             String topic = iterator.next();
@@ -147,11 +161,22 @@ public class NotifyManager {
         }
     }
 
+    /**
+     * 消费者订阅新的 Topic
+     *
+     * @param topic
+     * @throws MQClientException
+     */
     private void subscribe(String topic) throws MQClientException {
         defaultMQPushConsumer.subscribe(topic, "*");
         logger.warn("subscribe:{}", topic);
     }
 
+    /**
+     * 取消订阅从元数据中删除的 Topic
+     *
+     * @param topic
+     */
     private void unsubscribe(String topic) {
         try {
             logger.warn("unsubscribe:{}", topic);
@@ -210,6 +235,15 @@ public class NotifyManager {
         }
     }
 
+    /**
+     * 发送请求到所有 MQTT Proxy 节点，通知新消息到达
+     *
+     * @param messageEvents 所有消费到的新消息
+     * @throws MQBrokerException
+     * @throws RemotingException
+     * @throws InterruptedException
+     * @throws MQClientException
+     */
     public void notifyMessage(Set<MessageEvent> messageEvents) throws
             MQBrokerException, RemotingException, InterruptedException, MQClientException {
         Set<String> connectorNodes = metaPersistManager.getConnectNodeSet();
@@ -247,6 +281,13 @@ public class NotifyManager {
         }
     }
 
+    /**
+     * 发送 CMD_NOTIFY_MQTT_MESSAGE 请求到 MQTT Proxy 节点，通知新消息到达
+     *
+     * @param node MQTT Proxy 节点 RPC 协议地址
+     * @param messageEvents 消费到的新消息
+     * @return 请求发送是否成功
+     */
     protected boolean doNotify(String node, Set<MessageEvent> messageEvents) {
         Set<String> connectorNodes = metaPersistManager.getConnectNodeSet();
         if (connectorNodes == null || connectorNodes.isEmpty()) {

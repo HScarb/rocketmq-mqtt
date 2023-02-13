@@ -37,11 +37,16 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-
+/**
+ * Topic 和 MQTT 客户端匹配
+ */
 @Component
 public class MatchAction {
     private static Logger logger = LoggerFactory.getLogger(MatchAction.class);
 
+    /**
+     * MQTT 客户端 Session 管理器
+     */
     @Resource
     private SessionLoop sessionLoop;
 

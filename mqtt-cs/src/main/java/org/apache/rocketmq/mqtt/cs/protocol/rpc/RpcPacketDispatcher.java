@@ -35,7 +35,9 @@ import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-
+/**
+ * RPC 请求处理器
+ */
 @Component
 public class RpcPacketDispatcher implements NettyRequestProcessor {
     private static Logger logger = LoggerFactory.getLogger(RpcPacketDispatcher.class);
@@ -53,6 +55,7 @@ public class RpcPacketDispatcher implements NettyRequestProcessor {
         int code = request.getCode();
         try {
             if (RpcCode.CMD_NOTIFY_MQTT_MESSAGE == code) {
+                // 接收到其他节点发送的新消息到达请求
                 doNotify(request);
             } else if (RpcCode.CMD_CLOSE_CHANNEL == code) {
                 closeChannel(request);
@@ -69,6 +72,11 @@ public class RpcPacketDispatcher implements NettyRequestProcessor {
         return false;
     }
 
+    /**
+     * 接收到其他节点发送的新消息到达请求，通知连接的 MQTT 客户端
+     *
+     * @param request
+     */
     private void doNotify(RemotingCommand request) {
         String payload = new String(request.getBody(), StandardCharsets.UTF_8);
         List<MessageEvent> events = JSONObject.parseArray(payload, MessageEvent.class);
